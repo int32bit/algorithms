@@ -1,11 +1,9 @@
 package mefoo.util;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
-
 public class Trie {
 	private Node root;
 	/**
@@ -346,15 +344,15 @@ public class Trie {
 		/**
 		 * destroy this node
 		 */
-        public void destory() {
-            this.count = 0;
-            this.value = 0;
-            if (children != null) {
-            	for (int i = 0; i < children.length; ++i) {
-            		children[i] = null; // clear to let GC do its work.
-            	}
-            }
-            this.children = null;
-        }
+		public void destory() {
+		    this.count = 0;
+		    this.value = 0;
+		    if (children != null) {
+			for (int i = 0; i < children.length; ++i) {
+				children[i] = null; // clear to let GC do its work.
+			}
+		    }
+		    this.children = null;
+		}
 	}
 }
