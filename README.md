@@ -1,7 +1,5 @@
-algorithms
-==========
-
-Some algorithms  implementation for java
+已实现的算法
+============
 
 1. [bitset](/bitset) 实现java.util.Set接口，使用位存储的集合。
 2. [trie](/trie) 字典树，用于高效存储、查找字符串单词。
