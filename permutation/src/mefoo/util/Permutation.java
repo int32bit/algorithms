@@ -5,12 +5,10 @@ public class Permutation {
 		return e1.compareTo(e2);
 	}
     private static <T> void swap(List<T> list, int i, int j) {
-        assert(i < list.size() && j < list.size());
+        //assert(i < list.size() && j < list.size());
         if (i == j)
             return;
-        T o = list.get(i);
-        list.set(i, list.get(j));
-        list.set(j, o);
+	list.set(i, list.set(j, l.get(i)));
     }
     private static <T> void swap(T[] array, int i, int j) {
         assert(i < array.length && j < array.length);
