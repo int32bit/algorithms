@@ -45,3 +45,14 @@ new一个相同长度的空列表，然后逐一拷贝即可。
 	3. 和剩下的子列表合并， 变成1,4,2,3,5
 
 ### demo
+```java
+Integer[] arr = new Integer[]{1,2,3,4,5};
+Rotator.rotate(arr, -2); // 将数组左移2位
+print(arr); // 3,4,5,1,2
+List<Integer> list = Arrays.asList(1,2,3,4,5);
+backward(list, 3, 1, 2); // 将列表索引3位置开始，长度为1,即[4],左移动2位
+print(list);// [1,4,2,3,5]
+list = Arrays.asList(1,2,3,4,5,6,7);
+forward(list, 1, 2, 3); // 将列表1开始长度为2,即[2,3], 右移动3位。
+print(list);// [1,4,5,6,2,3,7]
+```

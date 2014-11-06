@@ -73,12 +73,11 @@ public class Rotator {
 			return;
 		if (index < 0)
 			index = 0;
-		if (index + distance + count >= size) {
+		if (index + distance + count > size) {
 			throw new IllegalArgumentException("index = " + distance + " distance = " + distance + " count = " + count);
 		}
 		if (count == size)
 			return;
-		if (index + distance + count >= size)
 		rotate(list.subList(index, index + distance + count), -count); 
 	}
 	public static void forward(List<?> list, int index, int distance) {
@@ -113,9 +112,12 @@ public class Rotator {
 	public static void main(String[] args) {
 		Integer[] arr = new Integer[]{1,2,3,4,5};
 		Rotator.rotate(arr, -2); // 将数组左移2位
-		print(arr);
+		print(arr); // 3,4,5,1,2
 		List<Integer> list = Arrays.asList(1,2,3,4,5);
-		backward(list, 3, 1, 2); // 将列表索引3位置开始，长度为1, 左移动2位
-		print(list);
+		backward(list, 3, 1, 2); // 将列表索引3位置开始，长度为1,即[4],左移动2位
+		print(list);// [1,4,2,3,5]
+		list = Arrays.asList(1,2,3,4,5,6,7);
+		forward(list, 1, 2, 3); // 将列表1开始长度为2,即[2,3], 右移动3位。
+		print(list);// [1,4,5,6,2,3,7]
 	}
 }
