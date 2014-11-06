@@ -1,9 +1,12 @@
 package mefoo.util;
 import java.util.*;
 public class Permutation {
-	private static <T extends Comparable<T>> int cmp(T e1, T e2) {
-		return e1.compareTo(e2);
-	}
+    private Permutation() {
+
+    }
+    private static <T extends Comparable<T>> int cmp(T e1, T e2) {
+	return e1.compareTo(e2);
+    }
     private static <T> void swap(List<T> list, int i, int j) {
         //assert(i < list.size() && j < list.size());
         if (i == j)
