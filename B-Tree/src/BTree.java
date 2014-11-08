@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
@@ -19,18 +20,19 @@ public class BTree<E> {
 	private final int order;
 	private int height;
 	private int size;
+	private int modCount;
 	/**
 	 * 创建一个m阶B树。
 	 * @param order B树的阶
 	 * @param comparator 关键字比较器。
 	 */
 	public BTree(int order, Comparator<E> comparator) {
-		this.root = new Node<E>(order);
+		//this.root = new Node<E>();
 		this.order = order;
 		this.comparator = comparator;
 		this.MAX_KEYS = order - 1;
 		this.MIN_KEYS = (order + 1) / 2 - 1;
-		this.height = 1;
+		this.height = 0;
 		this.size = 0;
 	}
 	/**
@@ -39,6 +41,104 @@ public class BTree<E> {
 	 */
 	public BTree(int order) {
 		this(order, null);
+	}
+	public BTree(List<E> list, int order, Comparator<E> comparator) {
+		this(order, comparator);
+		E extra = prepare(list, order);
+		this.size = list.size();
+		if (size > 0) {
+			this.root = initFromList(list);
+			if (extra != null)
+				add(extra);
+		}
+	}
+	public BTree(List<E> list, int order) {
+		this(list, order, null);
+	}
+	public static <T> BTree<T> getBTree(Collection<T> c, int order, Comparator<T> comparator) {
+		List<T> list;
+		if (c instanceof List) {
+			list = (List<T>)c;
+		} else {
+			list = new ArrayList<T>(c.size());
+			list.addAll(c);
+		}
+		return new BTree<T>(list, order, comparator);
+	}
+	public static <T> BTree<T> getBTree(Collection<T>c, int order) {
+		return getBTree(c, order, null);
+	}
+	private E prepare(List<E> list, int order) {
+		sort(list);
+		// 去重
+		for (int i = 1; i < list.size(); ++i) {
+			if (cmp(list.get(i - 1), list.get(i)) == 0) {
+				list.remove(i);
+			}
+		}
+		E extra = null;
+		if (!list.isEmpty() && list.size() % order == 0) {
+			extra = list.remove(list.size() - 1);
+		}
+		return extra;
+	}
+	@SuppressWarnings({ "unchecked", "rawtypes" })
+	private void sort(List<E> list) {
+		if (list == null || list.size() < 2)
+			return;
+		if (comparator != null) {
+			Collections.sort(list, comparator);
+		} else {
+			Collections.sort((List<Comparable>)list);
+		}
+	}
+	@SuppressWarnings( "unchecked")
+	private Node<E> initFromList(List<E> list) {
+		// make leaves
+		int n = (list.size() - 1) / order + 1;
+		Node<E>[] nodes = new Node[n];
+		for (int i = 0; i < n; ++i) {
+			nodes[i] = new Node<E>();
+			for (int j = 0; j < order; ++j) {
+				if (i * order + j < list.size()) {
+					nodes[i].values[j] = list.get(i * order + j);
+					nodes[i].size++;
+				}
+			}
+		}
+		// make internal nodes;
+		int height = 1;
+		Node<E>[] p = new Node[n];// 临时节点
+		while (n > 1) {
+			height ++;
+			n = (n - 1 + order) / order - 1;
+			//Node<E>[] p = new Node[n];
+			for (int i = 0; i < n; ++i) {
+				p[i] = new Node<E>();
+				p[i].children = new Node[order + 1];
+				p[i].isLeaf = false;
+				for (int j = 0; j < order; ++j) {
+					int index = i * order + j;
+					if (index >= nodes.length - 1) // 忽略最后一个节点。
+						break;
+					int size = nodes[index].size;
+					p[i].values[j] = nodes[index].values[size - 1]; // 取最后一个节点作为上层节点的alue
+					p[i].size++; // 上层节点数量+1
+					nodes[index].size--; // 下层节点数量-1
+					nodes[index].parent = p[i]; // 更新下层节点的父亲节点指向上层节点
+					p[i].children[j] = nodes[index]; // 更新上层节点的的孩子节点指向内部节点
+				}
+			}
+			// 更新最后一个节点，上层节点的最后一个孩子指向下层的最后一个节点，下层最后一个节点的parent指向上层最后一个节点
+			Node<E> newLast = p[n - 1];
+			Node<E> oldLast = nodes[nodes.length - 1];
+			newLast.children[newLast.size] = oldLast;
+			oldLast.parent = newLast;
+			// 更新工作节点。
+			nodes = p;
+		}
+		this.height = height;
+		return nodes[0];
 	}
 	@SuppressWarnings("unchecked")
 	private int cmp(Object e1, Object e2) {
@@ -97,13 +197,14 @@ public class BTree<E> {
 			return false;
 		}
 		if (root == null) {
-			root = new Node<E>(order);
+			root = new Node<E>();
 			this.height = 1;
 			this.size = 0;
 		}
 		boolean inserted = insert(key, root);
 		if (inserted) {
 			++size;
+			++modCount;
 			return true;
 		} else {
 			return false;
@@ -140,14 +241,14 @@ public class BTree<E> {
 		//assert(p != null && p.size > MAX_KEYS);
 		Node<E> parent = p.parent;
 		if (parent == null) { // parent为null，即当前节点为root，需要上升高度
-			parent = new Node<E>(order);
+			parent = new Node<E>();
 			parent.isLeaf = false; // 设置为非叶子节点
 			root = parent; // 更新root节点
 			height++; // 高度加1
 			parent.children = new Node[order + 1]; // 创建孩子节点，由于是先插入，再分裂，实际空间要大一
 		}
 		int mid = p.size >>> 1;
-		Node<E> left = new Node<E>(order); // 分裂，创建一个新的空节点
+		Node<E> left = new Node<E>(); // 分裂，创建一个新的空节点
 		Node<E> right = p; // 右边节点为原来的节点
 		left.isLeaf = p.isLeaf; // 节点是否叶子，取决于分裂前是否叶子。
 		if (!left.isLeaf) { // 若不是叶子，则还需要为孩子分配空间。
@@ -207,16 +308,76 @@ public class BTree<E> {
 		}
 		return isModify;
 	}
+	public boolean remove(E e) {
+		if (root == null) {
+			return false;
+		}
+		boolean isRemoved = remove(e, root);
+		if (isRemoved) {
+			--size;
+			++modCount;
+		}
+		return isRemoved;
+	}
+	private boolean remove(E e, Node<E> p) {
+		if (p.isLeaf) {
+			boolean isRemoved = p.deleteFromLeaf(e);
+			if (p.size < MIN_KEYS) {
+				mergeOrRotate(p);
+			}
+			return isRemoved;
+		}
+		return false;
+	}
+	private Node<E> leftBrother(Node<E> p) {
+		if (p == null || p.parent == null)
+			return null;
+		Node<E> parent = p.parent;
+		int i;
+		for (i = 0; i <= parent.size; ++i) {
+			if (parent.children[i] == p)
+				break;
+		}
+		if (i >= 1)
+			return parent.children[i - 1];
+		return null;
+	}
+	private Node<E> rightBrother(Node<E> p) {
+		if (p == null || p.parent == null)
+			return null;
+		Node<E> parent = p.parent;
+		int i;
+		for (i = 0; i <= parent.size; ++i) {
+			if (parent.children[i] == p)
+				break;
+		}
+		if (i < parent.size) {
+			return parent.children[i + 1];
+		}
+		return null;
+	}
+	private void mergeOrRotate(Node<E> p) {
+		Node<E> parent = p.parent;
+		if (parent == null) { // 说明p是root节点，不需要处理
+			return;
+		}
+		Node<E> left = leftBrother(p); // 获取左兄弟
+		if (left != null && left.size > MIN_KEYS) { // 左兄弟还很富裕，向左兄弟借一个。
+			
+		}
+		Node<E> right = leftBrother(p); // 左兄弟也贫穷，还好右兄弟富裕，借右兄弟。
+		if (right != null && right.size > MIN_KEYS) {
+			
+		}
+		// 左右兄弟都没有节点，需要合并。
+	}
 	public void print() {
 		print(root);
 	}
 	private void print(Node<E> p) {
 		if (p == null)
 			return;
-		for (int i = 0; i < p.size; i++) {
-			System.out.print(p.values[i] + " ");
-		}
-		System.out.println();
+		System.out.println(p);
 		if (!p.isLeaf) {
 			for (int i = 0; i <= p.size; ++i) {
 				print(p.children[i]);
@@ -286,6 +447,13 @@ public class BTree<E> {
 		return this.size;
 	}
 	/**
+	 * 判断该B树是否为空
+	 * @return 如果B树为空，返回true，否则返回false
+	 */
+	public boolean isEmpty() {
+		return size == 0;
+	}
+	/**
 	 * 返回B树一个节点能够容纳的最大关键字数量，等于阶数-1
 	 * @return B树一个节点能够容纳的最大关键字数量。
 	 */
@@ -311,7 +479,7 @@ public class BTree<E> {
 		Node<T> parent;
 		boolean isLeaf;
 		int size;
-		Node(int order) {
+		Node() {
 			this.values = new Object[order];
 			this.isLeaf = true;
 			this.size = 0;
@@ -384,16 +552,33 @@ public class BTree<E> {
 			size++;
 			return index;
 		}
+		boolean deleteFromLeaf(T key) {
+			int index = binarySearch(key);
+			if (index < 0)
+				return false;
+			for (int i = index; i < size; ++i) {
+				values[i] = values[i + 1]; // 由于多分配了一个空间，访问i + 1应该没有问题
+			}
+			this.size--;
+			return true;
+		}
+		@Override
+		public String toString() {
+			StringBuilder sb = new StringBuilder("[");
+			for (int i = 0; i < size; ++i) {
+				sb.append(values[i] + ",");
+			}
+			sb.deleteCharAt(sb.length() - 1);
+			sb.append(']');
+			return sb.toString();
+		}
 	}
 	public static void main(String[] args) {
-		BTree<Integer> tree = new BTree<>(5);
+		BTree<Integer> tree;
 		List<Integer> list = new ArrayList<>();
-		Random r = new Random(System.currentTimeMillis());
-		for (int i = 0; i < 1000; ++i)
-			list.add(r.nextInt(1000000));
-		tree.addAll(list);
-		assert(tree.containsAll(list));
-		System.out.println("size : " + tree.size());
-		System.out.println("length : " + tree.toArrays().length);
+		for (int i = 1; i <= 10; ++i)
+			list.add(i);
+		tree = new BTree<Integer>(list, 3);
+		tree.print();
 	}
 }
