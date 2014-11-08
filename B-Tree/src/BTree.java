@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Random;
@@ -75,11 +76,23 @@ public class BTree<E> {
 		return contains(key, children[index]);
 	}
 	/**
+	 * 当且仅当指定容器的元素全都在此树中，返回true，否则返回false。
+	 * @param c 指定的容器。
+	 * @return 若容器的所有元素都在此树中，返回true，否则返回false。
+	 */
+	public boolean containsAll(Collection<? extends E> c) {
+		for (E e : c) {
+			if (!contains(e))
+				return false;
+		}
+		return true;
+	}
+	/**
 	 * 插入关键字key到B-tree中。
 	 * @param key 待插入的关键字。
 	 * @return 若已经存在关键字，则插入失败，返回false， 否则返回true。
 	 */
-	public boolean insert(E key) {
+	public boolean add(E key) {
 		if (key == null) {
 			return false;
 		}
@@ -144,7 +157,7 @@ public class BTree<E> {
 		// FIXME
 		if (!p.isLeaf) {
 			p.children[mid].parent = parent.parent; // 由于中间节点需要上调，它的父亲节点也需要指向它爷爷节点。
-			for (int i = 0; i < mid; ++i) { // 左子树的孩子应该指向左子树。
+			for (int i = 0; i <= mid; ++i) { // 左子树的孩子应该指向左子树。
 				p.children[i].parent = left;
 			}
 			/* 本来就指向right，不需要更新。
@@ -182,6 +195,18 @@ public class BTree<E> {
 		if (parent.size > MAX_KEYS) // 如果父亲节点也达到最大关键字数量，需要递归分裂。
 			split(parent);
 	}
+	/**
+	 * 把指定容器的所有元素加入到树中。
+	 * @param c 指定的容器，容器的元素将加入到此树中。
+	 * @return 若调用此方法引起了B-tree的改变，返回true，否则返回false，表示没有成功添加任何元素
+	 */
+	public boolean addAll(Collection<? extends E> c) {
+		boolean isModify = false;
+		for (E e : c) {
+			isModify |= add(e);
+		}
+		return isModify;
+	}
 	public void print() {
 		print(root);
 	}
@@ -196,6 +221,47 @@ public class BTree<E> {
 			for (int i = 0; i <= p.size; ++i) {
 				print(p.children[i]);
 			}
+		}
+	}
+	/**
+	 * 把B-tree转化成Object数组。
+	 * @return 转化后的数组，数组包含所有关键字。
+	 */
+	public Object[] toArrays() {
+		List<E> values = new ArrayList<>(size);
+		dumpToList(root, values);
+		return values.toArray();
+	}
+	/**
+	 * 把B-tree的关键字转化成有序数组。
+	 * @param arr 需要转化的空数组，需要预先分配空间。
+	 * @return 转化后的数组，数组拥有B-tree的所有关键字。
+	 */
+	public  E[] toArrays(E[]arr) {
+		List<E> values = new ArrayList<>(size);
+		dumpToList(root, values);
+		return values.toArray(arr);
+	}
+	/**
+	 * 把子树p的所有值dump到List中，保持值有序。
+	 * @param p 子树
+	 * @param values 需要导入的列表
+	 */
+	@SuppressWarnings("unchecked")
+	private void dumpToList(Node<E> p, List<E> values) {
+		if (p == null) {
+			return;
+		}
+		if (p.isLeaf) {
+			for (int i = 0; i < p.size; ++i) {
+				values.add((E)p.values[i]);
+			}
+		} else {
+			for (int i = 0; i < p.size; ++i) {
+				dumpToList(p.children[i], values);
+				values.add((E)p.values[i]);
+			}
+			dumpToList(p.children[p.size], values);
 		}
 	}
 	/**
@@ -324,16 +390,10 @@ public class BTree<E> {
 		List<Integer> list = new ArrayList<>();
 		Random r = new Random(System.currentTimeMillis());
 		for (int i = 0; i < 1000; ++i)
-			list.add(r.nextInt(1000));
-		for (int i : list)
-			tree.insert(i);
-		for (int i : list) {
-			if (!list.contains(i)) {
-				System.err.println("ERROR " + i);
-				break;
-			}
-		}
-		System.out.println(tree.getHeight());
-		System.out.println(tree.size());
+			list.add(r.nextInt(1000000));
+		tree.addAll(list);
+		assert(tree.containsAll(list));
+		System.out.println("size : " + tree.size());
+		System.out.println("length : " + tree.toArrays().length);
 	}
 }
