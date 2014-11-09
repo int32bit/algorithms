@@ -104,7 +104,7 @@ public class BTree<E> {
 		this.height = 1;
 		// make internal nodes;
 		int lastN;
-		while (n > 1) {
+		while (true) {
 			height ++;
 			lastN = n;
 			int m = 0;
@@ -113,6 +113,8 @@ public class BTree<E> {
 					m++;
 				}
 			}
+			if (m < 1)
+				break;
 			n = (m - 1 + order) / order;
 			Node<E>[]p = new Node[n];
 			for (int i = 0; i < n; ++i) {
@@ -150,8 +152,8 @@ public class BTree<E> {
 			nodes = p;
 		}
 		this.root = nodes[0];
-		if (root.size > MAX_KEYS)
-			split(root);
+		//if (root.size > MAX_KEYS)
+		//	split(root);
 	}
 	@SuppressWarnings("unchecked")
 	private int cmp(Object e1, Object e2) {
@@ -595,14 +597,14 @@ public class BTree<E> {
 		Set<Integer> set = new HashSet<>();
 		Random r = new Random();
 		//int n = Integer.parseInt(args[0]);
-		int n = r.nextInt(10000);
+		int n = r.nextInt(100);
 		System.out.println("n = " + n);
 		for (int i = 1; i <= n; ++i)
-			set.add(r.nextInt(10000));
+			set.add(r.nextInt(100));
 		//tree = new BTree<Integer>(list, 4);
-		tree = BTree.build(set, 4);
+		tree = BTree.build(set, 3);
 		//tree.addAll(set);
-		//tree.print();
+		tree.print();
 		System.out.println(tree.toArrays().length);
 		System.out.println(set.size());
 		for (int i : set) {
