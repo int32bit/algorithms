@@ -204,4 +204,13 @@ void initFromList(List<E> list) {
 	root = nodes[0];
 }
 ```
+java实现
+--------
+
+1. 实现了CURD操作，并支持批量插入、删除。
+2. 支持迭代，迭代顺序为按关键字递增排列。
+3. 支持自定义比较器，构造器可以传人自己的Comparator.
+
+Demo：
+
 
