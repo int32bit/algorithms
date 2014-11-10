@@ -132,3 +132,76 @@ int binarySearch(T key) {
 [1,2] [4,5] [7,8] [10]
 
 此时已经不存在关键字为3的节点，算法结束。[9]就是根节点，高度为3.
+
+算法原理很简单，实现时需要注意指针，即更新孩子节点和父亲节点，当下层节点有少于m个节点关键字节点，则上层节点的最后一个孩子应该指向该节点，否则，应该取下层节点的最后一个孩子的孩子。
+
+该算法java实现为：
+
+```java
+void initFromList(List<E> list) {
+	// 构造叶子节点，要求最后一个叶子关键字必须少于order，其余叶子关键字数量必须等于order
+	int n = (list.size() - 1 + order) / order;
+	Node<E>[] nodes = new Node[n];
+	for (int i = 0; i < n; ++i) {
+		nodes[i] = new Node<E>();
+		for (int j = 0; j < order; ++j) {
+			if (i * order + j < list.size()) {
+				nodes[i].values[j] = list.get(i * order + j);
+				nodes[i].size++;
+			}
+		}
+	}
+	int height = 1;
+	// make internal nodes;
+	int lastN;
+	while (true) {
+		height ++;
+		lastN = n;
+		int m = 0;
+		for (int i = 0; i < n; ++i) {
+			if (nodes[i].size == order) {
+				m++;
+			}
+		}
+		if (m < 1)
+			break;
+		n = (m - 1 + order) / order;
+		Node<E>[]p = new Node[n];
+		for (int i = 0; i < n; ++i) {
+			p[i] = new Node<E>();
+			p[i].children = new Node[order + 1];
+			p[i].isLeaf = false;
+			for (int j = 0; j < order; ++j) {
+				int index = i * order + j;
+				if (index >= lastN)
+					break;
+				int size = nodes[index].size;
+				if (size < order) {
+					break;
+				}
+				p[i].values[j] = nodes[index].values[size - 1]; // 取最后一个节点作为上层节点的alue
+				nodes[index].values[size - 1] = null;
+				p[i].size++; // 上层节点数量+1
+				nodes[index].size--; // 下层节点数量-1
+				nodes[index].parent = p[i]; // 更新下层节点的父亲节点指向上层节点
+				p[i].children[j] = nodes[index]; // 更新上层节点的的孩子节点指向内部节点
+			}
+		}
+		// 更新最后一个节点，上层节点的最后一个孩子指向下层的最后一个节点，下层最后一个节点的parent指向上层最后一个节点
+		Node<E> newLast = p[n - 1];
+		Node<E> oldLast;
+		//下层最后一个节点取决于最后一个节点关键字数量是否order
+		if (newLast.children[newLast.size - 1] == nodes[lastN - 1]) {
+			oldLast = nodes[lastN - 1].children[order];
+		} else {
+			oldLast = nodes[lastN - 1];
+		}
+		newLast.children[newLast.size] = oldLast;
+		oldLast.parent = newLast;
+		// 更新工作节点。
+		nodes = p;
+	}
+	root = nodes[0];
+}
+```
+
