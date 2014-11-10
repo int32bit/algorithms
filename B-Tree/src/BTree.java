@@ -14,7 +14,7 @@ public class BTree<E> {
 	private final int MIN_KEYS;
 	private final int order;
 	private int height;
-	private int size;
+	private int totalSize;
 	private int modCount;
 	/**
 	 * 创建一个m阶B树。
@@ -28,7 +28,7 @@ public class BTree<E> {
 		this.MAX_KEYS = order - 1;
 		this.MIN_KEYS = (order + 1) / 2 - 1;
 		this.height = 0;
-		this.size = 0;
+		this.totalSize = 0;
 	}
 	/**
 	 * 创建一个m阶B树。
@@ -40,8 +40,8 @@ public class BTree<E> {
 	public BTree(List<E> list, int order, Comparator<E> comparator) {
 		this(order, comparator);
 		E extra = prepare(list, order); // 排重、排序、如果刚好整除order，还需要剔除一个元素，必须要求最后一个叶子关键字数量了少于order
-		this.size = list.size();
-		if (size > 0) {
+		this.totalSize = list.size();
+		if (totalSize > 0) {
 			initFromList(list);
 			if (extra != null)
 				add(extra);
@@ -214,11 +214,11 @@ public class BTree<E> {
 		if (root == null) {
 			root = new Node<E>();
 			this.height = 1;
-			this.size = 0;
+			this.totalSize = 0;
 		}
 		boolean inserted = insert(key, root);
 		if (inserted) {
-			++size;
+			++totalSize;
 			++modCount;
 			return true;
 		} else {
@@ -323,68 +323,204 @@ public class BTree<E> {
 		}
 		return isModify;
 	}
+	/**
+	 * 从BTree中删除指定的元素
+	 * @param e 需要删除的元素
+	 * @return 如果该元素存在，删除之，返回true，否则返回false
+	 */
 	public boolean remove(E e) {
 		if (root == null) {
 			return false;
 		}
 		boolean isRemoved = remove(e, root);
 		if (isRemoved) {
-			--size;
+			--totalSize;
 			++modCount;
 		}
 		return isRemoved;
 	}
 	private boolean remove(E e, Node<E> p) {
-		if (p.isLeaf) {
+		if (p.isLeaf) { // 删除的关键字在叶子节点中，直接删除，然后重新调整
 			boolean isRemoved = p.deleteFromLeaf(e);
 			if (p.size < MIN_KEYS) {
-				mergeOrRotate(p);
+				rebalancingAfterDeletion(p); // rebalances the tree
 			}
 			return isRemoved;
 		}
-		return false;
+		int index = p.binarySearch(e);
+		if (index < 0) { // 不在吃节点中，递归从子树中查找。
+			return remove(e, p.children[-index - 1]); // -index - 1就是插入位置，即孩子节点位置。
+		}
+		// 删除的是内部节点，需要寻找左子树最大节点（或者右子树中最小节点）作为新分隔符替换删除的关键字。
+		Node<E> leftLeaf = leftLeaf(p, index);// 寻找左子树最右节点。
+		Object candidate = leftLeaf.values[leftLeaf.size - 1];
+		//从叶子节点中移除候选节点
+		leftLeaf.values[leftLeaf.size - 1] = null;
+		leftLeaf.size--;
+		//候选节点作为分隔符替代删除的节点。
+		p.values[index] = candidate;
+		//重新调整树使其平衡。
+		if (leftLeaf.size < MIN_KEYS) {
+			rebalancingAfterDeletion(leftLeaf);
+		}
+		return true;
 	}
-	private Node<E> leftBrother(Node<E> p) {
+	private Node<E> leftSibling(Node<E> p) {
 		if (p == null || p.parent == null)
 			return null;
 		Node<E> parent = p.parent;
-		int i;
-		for (i = 0; i <= parent.size; ++i) {
-			if (parent.children[i] == p)
-				break;
-		}
+		int i = rankInChildren(p);
 		if (i >= 1)
 			return parent.children[i - 1];
 		return null;
 	}
-	private Node<E> rightBrother(Node<E> p) {
-		if (p == null || p.parent == null)
+	
+	private Node<E> rightSibling(Node<E> p) {
+		if (p == null || p.parent == null) // 根节点无兄弟节点
 			return null;
 		Node<E> parent = p.parent;
+		int i = rankInChildren(p);
+		if (i >= 0 && i < parent.size) {
+			return parent.children[i + 1];
+		}
+		return null;
+	}
+	private Node<E> leftLeaf(Node<E> p, int index) {
+		assert(!p.isLeaf);
+		Node<E> t = p.children[index];
+		while (!t.isLeaf) {
+			t = t.children[t.size];
+		}
+		return t;
+	}
+	/*private Node<E> rightLeft(Node<E> p, int index) {
+		if (p.isLeaf) {
+			return null;
+		}
+		Node<E> t = p.children[index + 1];
+		while (!t.isLeaf) {
+			t = t.children[0];
+		}
+		return t;
+	}*/
+	private int rankInChildren(Node<E> p) {
+		Node<E> parent = p.parent;
+		if (parent == null) { // I am not any one's child, i am root.
+			return -1;
+		}
 		int i;
 		for (i = 0; i <= parent.size; ++i) {
 			if (parent.children[i] == p)
 				break;
 		}
-		if (i < parent.size) {
-			return parent.children[i + 1];
-		}
-		return null;
+		return i;
 	}
-	private void mergeOrRotate(Node<E> p) {
+	private void leftRotate(Node<E> p) {
+		Node<E> right = rightSibling(p);
+		int myRank = rankInChildren(p);
+		Object oldSeparator = p.parent.values[myRank];
+		p.values[p.size] = oldSeparator;
+		p.size++;
+		Object newSeparator = right.values[0];
+		Node<E> child = right.isLeaf ? null : right.children[0];
+		int i;
+		for (i = 0; i < right.size - 1; ++i) {
+			right.values[i] = right.values[i + 1];
+			if (!right.isLeaf)
+				right.children[i] = right.children[i + 1];
+ 		}
+		if (!right.isLeaf) {
+			right.children[right.size - 1] = right.children[right.size];
+			child.parent = p;
+			p.children[p.size] = child;
+		}
+		right.size--;
+		p.parent.values[myRank] = newSeparator;
+	}
+	private void rightRotate(Node<E> p) {
+		Node<E> left = leftSibling(p);
+		int myRank = rankInChildren(p);
+		Object oldSeparator = p.parent.values[myRank - 1];
+		Node<E> child = null;
+		if (!left.isLeaf) {
+			child = left.children[left.size];
+			p.children[p.size + 1] = p.children[p.size];
+		}
+		for (int i = p.size; i >= 1; --i) {
+			p.values[i] = p.values[i - 1];
+			if (!p.isLeaf)
+				p.children[i] = p.children[i - 1];
+		}
+		if (!left.isLeaf) {
+			child.parent = p;
+			p.children[0] = child;
+		}
+		p.values[0] = oldSeparator;
+		p.size++;
+		Object newSeparator = left.values[left.size - 1];
+		left.size--;
+		p.parent.values[myRank - 1] = newSeparator;
+	}
+	private void merge(Node<E> p) {
 		Node<E> parent = p.parent;
-		if (parent == null) { // 说明p是root节点，不需要处理
+		assert(parent != null);
+		Node<E> left = p; // left node 或者是当前节点，即贫困节点，或者是当前节点的左兄弟节点。
+		Node<E> right = rightSibling(p);
+		if (right == null) {
+			left = leftSibling(p);
+			right = p;
+		}
+		int myRank = rankInChildren(left);
+		// 把父亲节点的Separator下移到需要合并的节点left
+		Object separator = parent.values[myRank];
+		left.values[left.size] = separator;
+		left.size++;
+		// 从父亲节点中删除Separator
+		for (int i = myRank; i < parent.size - 1; i++) {
+			parent.values[i] = parent.values[i + 1];
+			parent.children[i + 1] = parent.children[i + 2];
+			
+		}
+		parent.values[parent.size - 1] = null;
+		parent.children[parent.size] = null;
+		parent.size--;
+		// 拷贝右节点到左节点
+		for (int i = 0; i < right.size; ++i) {
+			left.size++;
+			left.values[left.size - 1] = right.values[i];
+			if (!left.isLeaf)
+				left.children[left.size - 1] = right.children[i];
+		}
+		// 不要忘记最后一个孩子更新。
+		if (!left.isLeaf) {
+			left.children[left.size] = right.children[right.size];
+		}
+		// 如果父亲节点也贫困了，需要从父亲节点重新调整，直到满足平衡或者父亲节点就是root节点
+		if (parent.size < MIN_KEYS) {
+			if (parent.size == 0 && parent == root) {
+				root = left;
+				height--;
+			} else {
+				rebalancingAfterDeletion(parent);
+			}
+		}
+	}
+	private void rebalancingAfterDeletion(Node<E> p) {
+		if (p == root) { // 说明p是root节点，不需要处理
 			return;
 		}
-		Node<E> left = leftBrother(p); // 获取左兄弟
-		if (left != null && left.size > MIN_KEYS) { // 左兄弟还很富裕，向左兄弟借一个。
-			
+		
+		Node<E> right = rightSibling(p); // 右兄弟
+		if (right != null && right.size > MIN_KEYS) { // 如果右兄弟节点富裕，左旋转。
+			leftRotate(p);
+			return;
 		}
-		Node<E> right = leftBrother(p); // 左兄弟也贫穷，还好右兄弟富裕，借右兄弟。
-		if (right != null && right.size > MIN_KEYS) {
-			
+		Node<E> left = leftSibling(p); // 获取左兄弟
+		if (left != null && left.size > MIN_KEYS) { // 左兄弟很富裕, 右旋转                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          。
+			rightRotate(p);
+			return;
 		}
-		// 左右兄弟都没有节点，需要合并。
+		merge(p);
 	}
 	public void print() {
 		print(root);
@@ -404,7 +540,7 @@ public class BTree<E> {
 	 * @return 转化后的数组，数组包含所有关键字。
 	 */
 	public Object[] toArrays() {
-		List<E> values = new ArrayList<>(size);
+		List<E> values = new ArrayList<>(totalSize);
 		dumpToList(root, values);
 		return values.toArray();
 	}
@@ -414,7 +550,7 @@ public class BTree<E> {
 	 * @return 转化后的数组，数组拥有B-tree的所有关键字。
 	 */
 	public  E[] toArrays(E[]arr) {
-		List<E> values = new ArrayList<>(size);
+		List<E> values = new ArrayList<>(totalSize);
 		dumpToList(root, values);
 		return values.toArray(arr);
 	}
@@ -452,6 +588,9 @@ public class BTree<E> {
 	 * @return B树的高度。
 	 */
 	public int getHeight() {
+		if (isEmpty()) {
+			return 0;
+		}
 		return this.height;
 	}
 	/**
@@ -459,14 +598,14 @@ public class BTree<E> {
 	 * @return 关键字数量。
 	 */
 	public int size() {
-		return this.size;
+		return this.totalSize;
 	}
 	/**
 	 * 判断该B树是否为空
 	 * @return 如果B树为空，返回true，否则返回false
 	 */
 	public boolean isEmpty() {
-		return size == 0;
+		return totalSize == 0;
 	}
 	/**
 	 * 返回B树一个节点能够容纳的最大关键字数量，等于阶数-1
@@ -583,6 +722,8 @@ public class BTree<E> {
 		}
 		@Override
 		public String toString() {
+			if (size == 0)
+				return "[]";
 			StringBuilder sb = new StringBuilder("[");
 			for (int i = 0; i < size; ++i) {
 				sb.append(values[i] + ",");
@@ -593,24 +734,15 @@ public class BTree<E> {
 		}
 	}
 	public static void main(String[] args) {
-		BTree<Integer> tree;
+		BTree<Integer> tree = new BTree<>(3);
 		Set<Integer> set = new HashSet<>();
-		Random r = new Random();
-		//int n = Integer.parseInt(args[0]);
-		int n = r.nextInt(100);
-		System.out.println("n = " + n);
-		for (int i = 1; i <= n; ++i)
-			set.add(r.nextInt(100));
-		//tree = new BTree<Integer>(list, 4);
-		tree = BTree.build(set, 3);
-		//tree.addAll(set);
-		tree.print();
-		System.out.println(tree.toArrays().length);
-		System.out.println(set.size());
+		int n = 20;
+		for (int i = 1; i <= 7; ++i)
+			set.add(i);
 		for (int i : set) {
-			if (!tree.contains(i)) {
-				System.out.println("ERROR:" + i);
-			}
+			tree.add(i);
 		}
+		tree.remove(4); 
+		tree.print();
 	}
 }
