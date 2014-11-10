@@ -155,8 +155,6 @@ public class BTree<E> implements Iterable<E> {
 			nodes = p;
 		}
 		this.root = nodes[0];
-		//if (root.size > MAX_KEYS)
-		//	split(root);
 	}
 	@SuppressWarnings("unchecked")
 	private int cmp(Object e1, Object e2) {
@@ -714,6 +712,8 @@ public class BTree<E> implements Iterable<E> {
 			if (last == null) {
 				throw new IllegalArgumentException();
 			}
+			System.out.println("to remove " + last);
+			iter.remove();
 			BTree.this.remove(last);
 			last = null;
 			expectedModCount = modCount;
@@ -753,6 +753,7 @@ public class BTree<E> implements Iterable<E> {
 			int high = size - 1;
 			while (low <= high) {
 				int mid = (low + high) >>> 1;
+				System.out.printf("%s: key = %s,mid = %s, values[mid] = %s\n",this, key, mid, values[mid]);
 				int cmp = cmp(key, (T)values[mid]);
 				if (cmp == 0)
 					return mid;
