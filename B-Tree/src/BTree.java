@@ -7,7 +7,7 @@ import java.util.*;
  *
  * @param <E> 关键字类型。
  */
-public class BTree<E> {
+public class BTree<E> implements Iterable<E> {
 	private Node<E> root;
 	private final Comparator<E> comparator;
 	private final int MAX_KEYS;
@@ -23,6 +23,9 @@ public class BTree<E> {
 	 */
 	public BTree(int order, Comparator<E> comparator) {
 		//this.root = new Node<E>();
+		if (order < 3) {
+			throw new IllegalArgumentException("The order of B-tree should be larger than 2");
+		}
 		this.order = order;
 		this.comparator = comparator;
 		this.MAX_KEYS = order - 1;
@@ -270,7 +273,6 @@ public class BTree<E> {
 			left.children = new Node[order + 1];
 		}
 		// 更新孩子节点的parent指针
-		// FIXME
 		if (!p.isLeaf) {
 			p.children[mid].parent = parent.parent; // 由于中间节点需要上调，它的父亲节点也需要指向它爷爷节点。
 			for (int i = 0; i <= mid; ++i) { // 左子树的孩子应该指向左子树。
@@ -323,6 +325,7 @@ public class BTree<E> {
 		}
 		return isModify;
 	}
+	
 	/**
 	 * 从BTree中删除指定的元素
 	 * @param e 需要删除的元素
@@ -338,6 +341,17 @@ public class BTree<E> {
 			++modCount;
 		}
 		return isRemoved;
+	}
+	/**
+	 * 把指定容器的所有元素从此树中删除。
+	 * @param c 指定的容器。
+	 * @return 若调用次方法引起了此树的改变，返回true，否则返回false。
+	 */
+	public boolean removeAll(Collection<? extends E> c) {
+		boolean isModify = false;
+		for (E e : c)
+			isModify |= remove(e);
+		return isModify;
 	}
 	private boolean remove(E e, Node<E> p) {
 		if (p.isLeaf) { // 删除的关键字在叶子节点中，直接删除，然后重新调整
@@ -365,6 +379,11 @@ public class BTree<E> {
 		}
 		return true;
 	}
+	/**
+	 * 找到p节点的左兄弟
+	 * @param p 需要查找的节点
+	 * @return 若由左兄弟，返回左兄弟，否则返回null
+	 */
 	private Node<E> leftSibling(Node<E> p) {
 		if (p == null || p.parent == null)
 			return null;
@@ -374,7 +393,11 @@ public class BTree<E> {
 			return parent.children[i - 1];
 		return null;
 	}
-	
+	/**
+	 * 查找p节点的右兄弟
+	 * @param p 需要查找的节点
+	 * @return 若右兄弟存在，返回右兄弟节点，否则返回null
+	 */
 	private Node<E> rightSibling(Node<E> p) {
 		if (p == null || p.parent == null) // 根节点无兄弟节点
 			return null;
@@ -385,6 +408,12 @@ public class BTree<E> {
 		}
 		return null;
 	}
+	/**
+	 * 找到p节点的左子树的最右叶子
+	 * @param p 需要查找的子树节点
+	 * @param index 该节点是第几个孩子。
+	 * @return
+	 */
 	private Node<E> leftLeaf(Node<E> p, int index) {
 		assert(!p.isLeaf);
 		Node<E> t = p.children[index];
@@ -403,6 +432,11 @@ public class BTree<E> {
 		}
 		return t;
 	}*/
+	/**
+	 * 判断p是第几个儿子
+	 * @param p 需要判断的节点
+	 * @return 如果p没有父亲，即他是根节点，返回-1
+	 */
 	private int rankInChildren(Node<E> p) {
 		Node<E> parent = p.parent;
 		if (parent == null) { // I am not any one's child, i am root.
@@ -415,6 +449,10 @@ public class BTree<E> {
 		}
 		return i;
 	}
+	/**
+	 * 左旋转
+	 * @param p 贫困节点
+	 */
 	private void leftRotate(Node<E> p) {
 		Node<E> right = rightSibling(p);
 		int myRank = rankInChildren(p);
@@ -461,6 +499,10 @@ public class BTree<E> {
 		left.size--;
 		p.parent.values[myRank - 1] = newSeparator;
 	}
+	/**
+	 * 合并操作
+	 * @param p 贫困节点
+	 */
 	private void merge(Node<E> p) {
 		Node<E> parent = p.parent;
 		assert(parent != null);
@@ -521,6 +563,22 @@ public class BTree<E> {
 			return;
 		}
 		merge(p);
+	}
+	/**
+	 * 若元素不在容器中，则删除之。
+	 * @param c 指定的容器
+	 * @return 若调用此方法改变了数，返回true，否则返回false
+	 */
+	public boolean retainAll(Collection<? extends E> c) {
+		boolean isModify = false;
+		for (Object o : toArrays()) {
+			@SuppressWarnings("unchecked")
+			E e = (E)o;
+			if (!c.contains(e)) {
+				isModify |= remove(e);
+			}
+		}
+		return isModify;
 	}
 	public void print() {
 		print(root);
@@ -620,6 +678,53 @@ public class BTree<E> {
 	 */
 	public int getMinKeys() {
 		return this.MIN_KEYS;
+	}
+	public void clear() {
+		this.totalSize = 0;
+		this.height = 0;
+		this.root = null;
+		this.modCount++;
+	}
+	@Override
+	public Iterator<E> iterator() {
+		return new Iter();
+	}
+	private class Iter implements Iterator<E> {
+		//Object[] data = toArrays();
+		LinkedList<E> data = (LinkedList<E>) new LinkedList<>(Arrays.asList(toArrays()));
+		Iterator<E> iter = data.iterator();
+		int expectedModCount = modCount;
+		E last = null;
+		@Override
+		public boolean hasNext() {
+			return iter.hasNext();
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public E next() {
+			checkForComodification();
+			last = iter.next();
+			return last;
+		}
+
+		@SuppressWarnings("unchecked")
+		@Override
+		public void remove() {
+			checkForComodification();
+			if (last == null) {
+				throw new IllegalArgumentException();
+			}
+			BTree.this.remove(last);
+			last = null;
+			expectedModCount = modCount;
+			
+		}
+		final void checkForComodification() {
+			if (modCount != expectedModCount) {
+				throw new ConcurrentModificationException();
+			}
+		}
 	}
 	/**
 	 * B-tree树节点
@@ -732,17 +837,5 @@ public class BTree<E> {
 			sb.append(']');
 			return sb.toString();
 		}
-	}
-	public static void main(String[] args) {
-		BTree<Integer> tree = new BTree<>(3);
-		Set<Integer> set = new HashSet<>();
-		int n = 20;
-		for (int i = 1; i <= 7; ++i)
-			set.add(i);
-		for (int i : set) {
-			tree.add(i);
-		}
-		tree.remove(4); 
-		tree.print();
 	}
 }
