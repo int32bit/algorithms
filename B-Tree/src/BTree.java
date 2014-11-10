@@ -521,6 +521,7 @@ public class BTree<E> implements Iterable<E> {
 			parent.children[i + 1] = parent.children[i + 2];
 			
 		}
+		//FIXME
 		parent.values[parent.size - 1] = null;
 		parent.children[parent.size] = null;
 		parent.size--;
@@ -528,17 +529,21 @@ public class BTree<E> implements Iterable<E> {
 		for (int i = 0; i < right.size; ++i) {
 			left.size++;
 			left.values[left.size - 1] = right.values[i];
-			if (!left.isLeaf)
+			if (!left.isLeaf) {
+				right.children[i].parent = left; // donot forget it.
 				left.children[left.size - 1] = right.children[i];
+			}
 		}
 		// 不要忘记最后一个孩子更新。
 		if (!left.isLeaf) {
+			right.children[right.size].parent = left;
 			left.children[left.size] = right.children[right.size];
 		}
 		// 如果父亲节点也贫困了，需要从父亲节点重新调整，直到满足平衡或者父亲节点就是root节点
 		if (parent.size < MIN_KEYS) {
 			if (parent.size == 0 && parent == root) {
 				root = left;
+				root.parent = null;
 				height--;
 			} else {
 				rebalancingAfterDeletion(parent);
@@ -712,7 +717,6 @@ public class BTree<E> implements Iterable<E> {
 			if (last == null) {
 				throw new IllegalArgumentException();
 			}
-			System.out.println("to remove " + last);
 			iter.remove();
 			BTree.this.remove(last);
 			last = null;
@@ -753,7 +757,6 @@ public class BTree<E> implements Iterable<E> {
 			int high = size - 1;
 			while (low <= high) {
 				int mid = (low + high) >>> 1;
-				System.out.printf("%s: key = %s,mid = %s, values[mid] = %s\n",this, key, mid, values[mid]);
 				int cmp = cmp(key, (T)values[mid]);
 				if (cmp == 0)
 					return mid;
