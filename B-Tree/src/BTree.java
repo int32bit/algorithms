@@ -691,6 +691,7 @@ public class BTree<E> implements Iterable<E> {
 	}
 	private class Iter implements Iterator<E> {
 		//Object[] data = toArrays();
+		@SuppressWarnings("unchecked")
 		LinkedList<E> data = (LinkedList<E>) new LinkedList<>(Arrays.asList(toArrays()));
 		Iterator<E> iter = data.iterator();
 		int expectedModCount = modCount;
@@ -700,7 +701,6 @@ public class BTree<E> implements Iterable<E> {
 			return iter.hasNext();
 		}
 
-		@SuppressWarnings("unchecked")
 		@Override
 		public E next() {
 			checkForComodification();
@@ -708,7 +708,6 @@ public class BTree<E> implements Iterable<E> {
 			return last;
 		}
 
-		@SuppressWarnings("unchecked")
 		@Override
 		public void remove() {
 			checkForComodification();
@@ -806,10 +805,6 @@ public class BTree<E> implements Iterable<E> {
 				children[i + 1] = children[i];
 			}
 			children[index] = left;
-			//if (index + 1 >= children.length) {
-			//	print();
-			//	System.out.printf("%s : %s\n", this, key);
-			//}
 			children[index + 1] = right;
 			values[index] = key;
 			size++;
