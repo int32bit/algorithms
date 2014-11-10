@@ -213,4 +213,24 @@ java实现
 
 Demo：
 
-
+```java
+BTree<Integer> tree = new BTree<Integer>(3);
+		for (int i = 1; i <= 100; i++) {
+			tree.add(i);
+		}
+		tree.remove(50);
+		for (Iterator<Integer> iter = tree.iterator(); iter.hasNext();) {
+			int value = iter.next();
+			if (value > 20 || (value & 1) == 0) {
+				iter.remove();
+				//System.out.println(value + " removed");
+			}
+		}
+		System.out.println("height: " + tree.getHeight()); //3
+		System.out.println("size: " + tree.size()); //10
+		for (int i : tree) {
+			System.out.print(i + " "); // 1 3 5 7 9 11 13 15 17 19
+		}
+		System.out.println();
+	}
+	```
