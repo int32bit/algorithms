@@ -7,3 +7,4 @@
 4. [permutation](/permutation) 给定一个序列，求按字典序的下一个排列。
 5. [shuffle](/shuffle) 洗牌算法，即把一个列表随机打乱。
 6. [rotate](/rotate) 列表旋转和移动。
+7. [B-tree](/BTree)B树，支持CURD操作。
