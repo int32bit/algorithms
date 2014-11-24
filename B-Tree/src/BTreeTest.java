@@ -1,5 +1,4 @@
 import java.util.Iterator;
-import java.util.*;
 
 
 public class BTreeTest {
@@ -13,7 +12,7 @@ public class BTreeTest {
 			int value = iter.next();
 			if (value > 50 || (value & 1) == 0) {
 				iter.remove();
-				//System.out.println(value + " removed");
+				System.out.println(value + " removed");
 			}
 		}
 		System.out.println("height: " + tree.getHeight());

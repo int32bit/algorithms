@@ -693,34 +693,48 @@ public class BTree<E> implements Iterable<E> {
 		return new Iter();
 	}
 	private class Iter implements Iterator<E> {
-		//Object[] data = toArrays();
-		@SuppressWarnings("unchecked")
-		LinkedList<E> data = (LinkedList<E>) new LinkedList<>(Arrays.asList(toArrays()));
-		Iterator<E> iter = data.iterator();
+		Object[] data = toArrays();
 		int expectedModCount = modCount;
-		E last = null;
+		int lastRet = -1;
+		int cursor;
 		@Override
 		public boolean hasNext() {
-			return iter.hasNext();
+			return cursor != totalSize;
 		}
 
+		@SuppressWarnings("unchecked")
 		@Override
 		public E next() {
 			checkForComodification();
-			last = iter.next();
-			return last;
+			int i = cursor;
+			if (i >= totalSize)
+				throw new NoSuchElementException();
+			if (i > data.length)
+				throw new ConcurrentModificationException();
+			cursor = i + 1;
+			return (E)data[lastRet = i];
 		}
 
+		@SuppressWarnings("unchecked")
 		@Override
 		public void remove() {
-			checkForComodification();
-			if (last == null) {
-				throw new IllegalArgumentException();
+			if (lastRet < 0) {
+				throw new IllegalStateException();
 			}
-			iter.remove();
-			BTree.this.remove(last);
-			last = null;
-			expectedModCount = modCount;
+			checkForComodification();
+			try {
+				E removed = (E)data[lastRet];
+				for (int i = lastRet; i < totalSize - 1; ++i) {
+					data[i] = data[i + 1];
+				}
+				data[totalSize - 1] = null;
+				BTree.this.remove(removed);
+				cursor = lastRet;
+				lastRet = -1;
+				expectedModCount = modCount;
+			} catch (IndexOutOfBoundsException e) {
+				throw new ConcurrentModificationException();
+			}
 			
 		}
 		final void checkForComodification() {
