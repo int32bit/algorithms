@@ -9,3 +9,4 @@
 6. [rotate](/rotate) 列表旋转和移动。
 7. [B-tree](/B-Tree)B树，支持CURD操作。
 8. [RB-tree](/RBTree)红黑树操作。
+9. [skiplist](/skiplist)跳表。
