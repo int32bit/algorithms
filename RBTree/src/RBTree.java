@@ -306,6 +306,7 @@ public class RBTree<E> {
 			p.left = l.right;
 			if (l.right != null)
 				l.right.parent = p;
+			l.parent = p.parent;
 			if (p.parent == null)
 				root = l;
 			else if (p.parent.right == p) 
