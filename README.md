@@ -11,3 +11,4 @@
 8. [RB-tree](/RBTree)红黑树操作。
 9. [skiplist](/skiplist)跳表。
 10. [treap](/treap)树堆。
+11. [蓄水池抽样](/sample)
