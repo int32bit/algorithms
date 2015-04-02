@@ -12,3 +12,4 @@
 9. [skiplist](/skiplist)跳表。
 10. [treap](/treap)树堆。
 11. [蓄水池抽样](/sample)
+12. [小数转化成分数](/fraction)
