@@ -8,6 +8,8 @@
 设A = a<sub>1</sub>a<sub>2</sub>...a<sub>n</sub>, B = b<sub>1</sub>b<sub>2</sub>...b<sub>n</sub>, 则
 10<sup>n</sup>X = A + 0.(B), 即X = (A + 0.(B)) / 10<sup>n</sup>
 
-设Y = 0.B, 即循环部分。则X = (A + Y) / 10<sup>n</sup>
+设Y = 0.B, 即循环部分。则X = (A + Y) / 10<sup>n</sup>，
 10<sup>m</sup>Y = B + Y, 则Y = B / 10<sup>m</sup> - 1
 则 X = (A * (10<sup>m</sup> - 1) + B) / (10<sup>n</sup> * (10<sup>m</sup> - 1))
+
+比如0.3（3）=> (3 + 0.(3)) / 10 => 0.(3) = 3 / (10 - 1) = 3 / 9 => (3 * 9 + 3)/ (10 * 9) = 1 / 3 
