@@ -9,4 +9,4 @@
 10<sup>n</sup>X = A + 0.(B), 即X = (A + 0.(B)) / 10<sup>n</sup>
 
 考虑设 = 0.B, X = (A + Y) / 10<sup>n</sup>,即循环部分,10<sup>m</sup>Y = B + Y, 则Y = B / 10<sup>m</sup> - 1
-则 X = (A * (10<sup>m</sup> - 1) + B) / (10<sup>n</sup> * (10<sup>m</sup - 1))
+则 X = (A * (10<sup>m</sup> - 1) + B) / (10<sup>n</sup> * (10<sup>m</sup> - 1))
